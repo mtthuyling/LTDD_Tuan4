@@ -1,0 +1,233 @@
+// PHIÊN BẢN NGẮN DỄ CHÉP. Có thể chép toàn bộ thay cho lib/main.dart.
+import 'package:flutter/material.dart';
+
+void main() => runApp(const MaterialApp(
+  debugShowCheckedModeBanner: false,
+  home: BaiTap(),
+));
+
+class BaiTap extends StatefulWidget {
+  const BaiTap({super.key});
+  @override
+  State<BaiTap> createState() => _BaiTapState();
+}
+
+class _BaiTapState extends State<BaiTap> {
+  int trang = 0; // 0: email, 1: OTP, 2: mật khẩu, 3: xác nhận.
+  String loi = '';
+  bool xong = false, hienPass = false;
+  final email = TextEditingController();
+  final pass = TextEditingController();
+  final pass2 = TextEditingController();
+  final ma = List.generate(5, (_) => TextEditingController());
+  final xanh = const Color(0xFF4999EC);
+
+  String layOTP() => ma.map((o) => o.text).join(); // Ghép 5 số OTP.
+
+  void next() { // Xử lý nút Next tùy theo trang hiện tại.
+    String thongBao = '';
+    if (trang == 0 &&
+        (!email.text.contains('@') || !email.text.contains('.'))) {
+      thongBao = 'Email không hợp lệ';
+    } else if (trang == 1 && layOTP() != '12345') {
+      thongBao = 'OTP demo là 12345';
+    } else if (trang == 2 && pass.text.length < 6) {
+      thongBao = 'Mật khẩu tối thiểu 6 ký tự';
+    } else if (trang == 2 && pass.text != pass2.text) {
+      thongBao = 'Mật khẩu nhập lại chưa đúng';
+    }
+    setState(() {
+      loi = thongBao;
+      if (loi.isEmpty) {
+        if (trang == 0) { // Bắt đầu lại thì xóa dữ liệu cũ.
+          for (final o in ma) { o.clear(); }
+          pass.clear();
+          pass2.clear();
+          xong = false;
+        }
+        trang++; // Tăng từ 0 -> 1 -> 2 -> 3.
+      }
+    });
+  }
+
+  void submit() { // Từ trang 4 quay về trang 1, giữ dữ liệu.
+    setState(() { trang = 0; xong = true; loi = ''; });
+  }
+
+  void back() { // Lùi về một trang khi bấm mũi tên.
+    if (trang > 0) setState(() { trang--; loi = ''; });
+  }
+
+  @override
+  void dispose() { // Giải phóng ô nhập khi tắt ứng dụng.
+    email.dispose(); pass.dispose(); pass2.dispose();
+    for (final o in ma) { o.dispose(); }
+    super.dispose();
+  }
+
+  Widget tieuDe(String ten, String moTa) => Column(children: [
+    Text(ten, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+    const SizedBox(height: 9),
+    Text(moTa, textAlign: TextAlign.center,
+        style: const TextStyle(color: Colors.grey, fontSize: 12)),
+  ]);
+
+  Widget oNhap(TextEditingController c, String goiY, IconData icon,
+      {bool matKhau = false}) => TextField(
+    controller: c, // c.text là nội dung vừa nhập.
+    obscureText: matKhau && !hienPass, // !false = true: che mật khẩu.
+    decoration: InputDecoration(
+      hintText: goiY, prefixIcon: Icon(icon, size: 19),
+      filled: true, fillColor: const Color(0xFFF8F8FB),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+      suffixIcon: matKhau ? IconButton(
+        icon: Icon(hienPass ? Icons.visibility : Icons.visibility_off),
+        onPressed: () => setState(() => hienPass = !hienPass),
+      ) : null,
+    ),
+  );
+
+  Widget nut(String chu, VoidCallback bam) => SizedBox(
+    height: 44, width: double.infinity,
+    child: ElevatedButton(
+      onPressed: bam, // Gọi hàm khi bấm nút.
+      style: ElevatedButton.styleFrom(
+        backgroundColor: xanh, foregroundColor: Colors.white,
+        shape: const StadiumBorder(),
+      ),
+      child: Text(chu),
+    ),
+  );
+
+  Widget dong(String giaTri, IconData icon) => Container(
+    height: 45, padding: const EdgeInsets.all(10),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF8F8FB),
+      border: Border.all(color: Colors.black12),
+      borderRadius: BorderRadius.circular(7),
+    ),
+    child: Row(children: [
+      Icon(icon, size: 18, color: Colors.grey),
+      const SizedBox(width: 10),
+      Expanded(child: Text(giaTri, overflow: TextOverflow.ellipsis)),
+    ]),
+  );
+
+  Widget noiDung() => SingleChildScrollView(
+    padding: const EdgeInsets.all(22),
+    child: Stack(children: [
+      Column(children: [
+        const SizedBox(height: 65),
+        Image.asset('assets/logo_uth.png', width: 90, height: 62),
+        const SizedBox(height: 8),
+        Text('SmartTasks', style: TextStyle(color: xanh,
+            fontSize: 19, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 28),
+
+        if (trang == 0) ...[ // Màn 1: Email.
+          tieuDe('Forget Password?', 'Enter your Email, we will send you a verification code.'),
+          const SizedBox(height: 27),
+          oNhap(email, 'Your Email', Icons.mail_outline),
+          const SizedBox(height: 24), nut('Next', next),
+          const SizedBox(height: 40),
+          Container(
+            width: 275, padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(color: const Color(0xFFDCEAFF),
+                borderRadius: BorderRadius.circular(25)),
+            child: Text(
+              xong ? 'Đã xác nhận!\nEmail: ${email.text}\nOTP: ${layOTP()}\nMật khẩu: đã nhận (ẩn)'
+                  : 'email\notp\npass\n(từ màn hình 4)',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, color: xong ? Colors.green : Colors.red),
+            ),
+          ),
+        ],
+
+        if (trang == 1) ...[ // Màn 2: 5 ô OTP.
+          tieuDe('Verify Code', 'Enter the code\nwe just sent to your Email'),
+          const SizedBox(height: 28),
+          Row(children: List.generate(5, (i) => Expanded(
+            child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: TextField(
+                controller: ma[i], maxLength: 1, textAlign: TextAlign.center,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(counterText: '',
+                    border: OutlineInputBorder()),
+                onChanged: (v) { // Nhập xong một ô thì sang ô kế.
+                  if (v.isNotEmpty && i < 4) FocusScope.of(context).nextFocus();
+                },
+              ),
+            ),
+          ))),
+          const SizedBox(height: 24), nut('Next', next),
+          const SizedBox(height: 15),
+          const Text('OTP demo: 12345 (không gửi email thật)',
+              style: TextStyle(fontSize: 11, color: Colors.grey)),
+        ],
+
+        if (trang == 2) ...[ // Màn 3: đổi mật khẩu.
+          tieuDe('Create new password', 'Enter a new password (at least 6 characters)'),
+          const SizedBox(height: 28),
+          oNhap(pass, 'Password', Icons.lock_outline, matKhau: true),
+          const SizedBox(height: 14),
+          oNhap(pass2, 'Confirm Password', Icons.lock_outline, matKhau: true),
+          const SizedBox(height: 24), nut('Next', next),
+        ],
+
+        if (trang == 3) ...[ // Màn 4: nhận dữ liệu từ 3 trang trước.
+          tieuDe('Confirm', 'We are here to help you!'),
+          const SizedBox(height: 27),
+          dong(email.text, Icons.person_outline),
+          const SizedBox(height: 13),
+          dong(layOTP(), Icons.mail_outline),
+          const SizedBox(height: 13),
+          dong(List.filled(pass.text.length, '*').join(), Icons.lock_outline),
+          const SizedBox(height: 24), nut('Submit', submit),
+        ],
+        if (loi.isNotEmpty) Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Text(loi, style: const TextStyle(color: Colors.red)),
+        ),
+      ]),
+      if (trang > 0) Positioned(top: 0, left: 0,
+        child: IconButton(onPressed: back,
+          style: IconButton.styleFrom(backgroundColor: Colors.lightBlue),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white)),
+      ),
+    ]),
+  );
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: const Color(0xFFF0F2F6),
+    body: LayoutBuilder(builder: (context, khung) {
+      if (khung.maxWidth <= 500) {
+        return ColoredBox(color: Colors.white,
+            child: SafeArea(child: noiDung()));
+      }
+      // Khung điện thoại khi mở trên máy tính.
+      return Center(child: FittedBox(fit: BoxFit.contain,
+        child: Container(
+          width: 370, height: 785, padding: const EdgeInsets.all(9),
+          decoration: BoxDecoration(color: Colors.black,
+              borderRadius: BorderRadius.circular(45)),
+          child: ClipRRect(borderRadius: BorderRadius.circular(37),
+            child: ColoredBox(color: Colors.white,
+              child: Column(children: [
+                const Padding(padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
+                  child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [Text('9:41'), Row(children: [
+                      Icon(Icons.signal_cellular_alt, size: 15),
+                      Icon(Icons.wifi, size: 15),
+                      Icon(Icons.battery_full, size: 18),
+                    ])],
+                  )),
+                Expanded(child: noiDung()),
+              ]),
+            ),
+          ),
+        ),
+      ));
+    }),
+  );
+}

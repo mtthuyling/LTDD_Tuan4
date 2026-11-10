@@ -1,6 +1,0 @@
-analyzer:
-  errors:
-    unused_import: warning
-  exclude:
-    - build/**
-    - web/**
